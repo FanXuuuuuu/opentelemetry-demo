@@ -38,6 +38,12 @@ On this ECS host, prefer the system-installed Datadog Agent. The
 `container-datadog-agent` profile for hosts that do not already run the Agent:
 
 ```bash
+sudo DD_SITE=us5.datadoghq.com bash scripts/ecs-configure-host-datadog-agent.sh
+```
+
+For hosts that do not already run the Agent, use the optional container profile:
+
+```bash
 COMPOSE_PROFILES=container-datadog-agent docker compose \
   --env-file .env --env-file .env.datadog \
   -f compose.yaml -f compose.extras.yaml up -d
