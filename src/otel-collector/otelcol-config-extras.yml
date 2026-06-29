@@ -2,32 +2,45 @@
 # SPDX-License-Identifier: Apache-2.0
 
 # Extras/customization layer for the OTel Collector.
-# Override this file in your fork to add exporters for your own observability backend.
-#
-# This file is intentionally empty. It is always loaded last, giving forks
-# a stable, well-defined seam to customize without touching upstream files.
-#
-# IMPORTANT: The OTel Collector merges config files but REPLACES arrays, not appends.
-# If you want to keep the default observability stack alongside your own exporters,
-# you must explicitly repeat the upstream exporter names in your pipeline definitions.
-#
-# Upstream exporter names (repeat these to keep them active):
-#   traces:  otlp_grpc/jaeger, debug, span_metrics
-#   metrics: otlp_http/prometheus, debug
-#   logs:    opensearch, debug
-#
-# Example:
-#
-# exporters:
-#   otlp_grpc/mybackend:
-#     endpoint: https://ingest.mybackend.com
-#
-# service:
-#   pipelines:
-#     traces:
-#       exporters: [otlp_grpc/jaeger, debug, span_metrics, otlp_grpc/mybackend]  # repeat upstream exporters
-#     metrics:
-#       receivers: [docker_stats, http_check/frontend-proxy, host_metrics, nginx, otlp, redis, span_metrics]
-#       exporters: [otlp_http/prometheus, debug, otlp_grpc/mybackend]           # repeat upstream exporters
-#     logs:
-#       exporters: [opensearch, debug, otlp_grpc/mybackend]                     # repeat upstream exporters
+# This fork sends demo telemetry to Datadog US5.
+
+connectors:
+  datadog/connector:
+
+extensions:
+  datadog/extension:
+    api:
+      key: ${env:DD_API_KEY}
+      site: ${env:DD_SITE}
+
+exporters:
+  datadog:
+    api:
+      key: ${env:DD_API_KEY}
+      site: ${env:DD_SITE}
+    host_metadata:
+      enabled: true
+
+processors:
+  resource/datadog:
+    attributes:
+      - key: deployment.environment.name
+        value: demo
+        action: upsert
+      - key: service.namespace
+        value: opentelemetry-demo
+        action: upsert
+
+service:
+  extensions: [datadog/extension]
+  pipelines:
+    traces:
+      processors: [resourcedetection, memory_limiter, resource/datadog, transform/sanitize_spans]
+      exporters: [debug, span_metrics, datadog/connector, datadog]
+    metrics:
+      receivers: [datadog/connector, docker_stats, http_check/frontend-proxy, host_metrics, nginx, otlp, redis, postgresql, prometheus/ad, span_metrics]
+      processors: [resourcedetection, memory_limiter, resource/datadog]
+      exporters: [debug, datadog]
+    logs:
+      processors: [resourcedetection, memory_limiter, resource/datadog, transform/sanitize_logs]
+      exporters: [debug, datadog]

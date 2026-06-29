@@ -17,6 +17,7 @@
 # AI Agents
 .claude/
 .codex/
+.codex_ssh/
 .cursor/
 .cursorrules
 
@@ -38,6 +39,7 @@ composer.lock
 .venv
 .dockerhub.env
 .ghcr.env
+.env.datadog
 *.apk
 /.lycheecache
 

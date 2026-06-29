@@ -1,26 +1,59 @@
 # Copyright The OpenTelemetry Authors
 # SPDX-License-Identifier: Apache-2.0
 
-# Extras layer: override this file in your fork to add or modify services
-# for your own observability backend or additional components.
-#
-# This file is intentionally empty. It is always loaded last, giving forks
-# a stable, well-defined seam to customize without touching upstream files.
-#
-# Usage:
-#   docker compose -f compose.yaml -f compose.full.yaml -f compose.observability.yaml -f compose.extras.yaml up
-#
-# Example: add a service and patch the otel-collector to export to it:
-#
-# services:
-#   my-backend:
-#     image: myvendor/backend:latest
-#     ports:
-#       - "4317"
-#
-#   otel-collector:
-#     depends_on:
-#       my-backend:
-#         condition: service_started
-#
-# Then add your exporter config to src/otel-collector/otelcol-config-extras.yml.
+services:
+  datadog-agent:
+    image: gcr.io/datadoghq/agent:7
+    container_name: datadog-agent
+    restart: unless-stopped
+    pid: host
+    cgroup: host
+    environment:
+      - DD_API_KEY
+      - DD_SITE=us5.datadoghq.com
+      - DD_ENV=demo
+      - DD_SERVICE=opentelemetry-demo
+      - DD_VERSION=${IMAGE_VERSION}
+      - DD_APM_ENABLED=true
+      - DD_APM_NON_LOCAL_TRAFFIC=true
+      - DD_LOGS_ENABLED=true
+      - DD_LOGS_CONFIG_CONTAINER_COLLECT_ALL=true
+      - DD_CONTAINER_LABELS_AS_TAGS={"com.docker.compose.service":"compose_service"}
+      - DD_PROCESS_AGENT_ENABLED=true
+      - DD_DOGSTATSD_NON_LOCAL_TRAFFIC=true
+      - DD_REMOTE_CONFIGURATION_ENABLED=true
+      - DD_SYSTEM_PROBE_ENABLED=true
+      - DD_SYSTEM_PROBE_NETWORK_ENABLED=true
+      - DD_NETWORK_CONFIG_ENABLED=true
+      - DD_SYSTEM_PROBE_SERVICE_MONITORING_ENABLED=true
+    cap_add:
+      - SYS_ADMIN
+      - SYS_RESOURCE
+      - SYS_PTRACE
+      - NET_ADMIN
+      - NET_BROADCAST
+      - NET_RAW
+      - IPC_LOCK
+      - CHOWN
+    security_opt:
+      - apparmor:unconfined
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /proc/:/host/proc/:ro
+      - /sys/fs/cgroup/:/host/sys/fs/cgroup:ro
+      - /sys/kernel/debug:/sys/kernel/debug
+      - /lib/modules:/lib/modules:ro
+      - /usr/src:/usr/src:ro
+      - /etc/os-release:/host/etc/os-release:ro
+
+  otel-collector:
+    command:
+      - "--config=/etc/otelcol-config.yml"
+      - "--config=/etc/otelcol-config-extras.yml"
+      - "--feature-gates=service.profilesSupport,datadog.EnableOperationAndResourceNameV2"
+    environment:
+      - DD_API_KEY
+      - DD_SITE=us5.datadoghq.com
+    depends_on:
+      datadog-agent:
+        condition: service_started
