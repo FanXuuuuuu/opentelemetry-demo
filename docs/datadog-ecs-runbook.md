@@ -33,15 +33,25 @@ The Datadog documentation for the OpenTelemetry demo currently recommends 6GB of
 available RAM. A 2 vCPU / 2 GiB ECS instance should run with swap enabled or be
 upgraded before attempting the full profile.
 
+On this ECS host, prefer the system-installed Datadog Agent. The
+`datadog-agent` Compose service is kept behind the optional
+`container-datadog-agent` profile for hosts that do not already run the Agent:
+
+```bash
+COMPOSE_PROFILES=container-datadog-agent docker compose \
+  --env-file .env --env-file .env.datadog \
+  -f compose.yaml -f compose.extras.yaml up -d
+```
+
 ## What this fork enables
 
 - OTel traces, metrics, and logs are exported through the Collector Datadog
   exporter.
 - Datadog's Collector connector derives APM stats from traces for Datadog APM
   service views.
-- Datadog Agent collects host/container infrastructure, Docker container logs,
-  processes, Universal Service Monitoring, Cloud Network Monitoring, and Remote
-  Configuration prerequisites.
+- The system-installed Datadog Agent collects host/container infrastructure,
+  Docker container logs, processes, Universal Service Monitoring, Cloud Network
+  Monitoring, and Remote Configuration prerequisites.
 - Error Tracking can be demonstrated from application errors in traces/logs.
 
 ## Live Debugger note
@@ -54,11 +64,11 @@ Live Debugger probes can be created from the Datadog UI.
 
 ## Verification checklist
 
-1. `docker compose ps` shows `otel-collector`, `datadog-agent`, `frontend-proxy`,
-   `frontend`, and backend services healthy or running.
+1. `docker compose ps` shows `otel-collector`, `frontend-proxy`, `frontend`, and
+   backend services healthy or running.
 2. `docker logs otel-collector` has no Datadog exporter authentication errors.
-3. `docker exec datadog-agent agent status` reports Datadog site US5, logs
-   enabled, process agent running, and system-probe enabled.
+3. `datadog-agent status` reports Datadog site US5, logs enabled, process agent
+   running, and system-probe enabled.
 4. `curl http://localhost:8080` returns the Astronomy Shop frontend.
 5. Datadog APM Service Catalog shows `env:demo` services under
    `service.namespace:opentelemetry-demo`.

@@ -3,6 +3,8 @@
 
 services:
   datadog-agent:
+    profiles:
+      - container-datadog-agent
     image: gcr.io/datadoghq/agent:7
     container_name: datadog-agent
     restart: unless-stopped
@@ -54,6 +56,3 @@ services:
     environment:
       - DD_API_KEY
       - DD_SITE=us5.datadoghq.com
-    depends_on:
-      datadog-agent:
-        condition: service_started
